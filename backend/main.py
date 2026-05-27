@@ -2,35 +2,39 @@ from fastapi import FastAPI
 import mysql.connector
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = FastAPI()
 
 
-
-# ======================================================
-# CORS POLICY
-# ======================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # Allow All Frontends
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],     # GET, POST, PUT, DELETE
+    allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# -------------------- DB Connection --------------------
-conn = mysql.connector.connect(
-    host=os.getenv("db_host"),
-    user=os.getenv("db_user"),
-    password=os.getenv("db_password"),
-    database=os.getenv("db_name"),
-    port=int(os.getenv("db_port"))
-)
 
-cursor = conn.cursor(dictionary=True)
+def get_connection():
+
+    conn = mysql.connector.connect(
+        host=os.getenv("db_host"),
+        user=os.getenv("db_user"),
+        password=os.getenv("db_password"),
+        database=os.getenv("db_name"),
+        port=int(os.getenv("db_port"))
+    )
+
+    return conn
 
 
 
-# -------------------- Create Table --------------------
+conn = get_connection()
+cursor = conn.cursor()
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS expenses(
     expense_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,6 +49,11 @@ CREATE TABLE IF NOT EXISTS expenses(
 
 conn.commit()
 
+cursor.close()
+conn.close()
+
+
+
 @app.get("/")
 def home():
 
@@ -52,36 +61,46 @@ def home():
         "message": "API Running Successfully"
     }
 
-# -------------------- Add Expense --------------------
+
+
 @app.post("/add_expense")
 def add_expense(payload: dict):
+
+    conn = get_connection()
+    cursor = conn.cursor()
 
     query = """
     INSERT INTO expenses
     (title, amount, category, payment_method, expense_date, description)
-    VALUES (%s,%s,%s,%s,%s,%s)
+    VALUES (%s, %s, %s, %s, %s, %s)
     """
 
     values = (
-        data["title"],
-        data["amount"],
-        data["category"],
-        data["payment_method"],
-        data["expense_date"],
-        data["description"]
+        payload["title"],
+        payload["amount"],
+        payload["category"],
+        payload["payment_method"],
+        payload["expense_date"],
+        payload["description"]
     )
 
     cursor.execute(query, values)
+
     conn.commit()
+
+    cursor.close()
+    conn.close()
 
     return {
         "message": "Expense Added Successfully"
     }
 
 
-# -------------------- Get All Expenses --------------------
 @app.get("/get_expenses")
 def get_expenses():
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
     query = """
     SELECT *
@@ -93,8 +112,9 @@ def get_expenses():
 
     data = cursor.fetchall()
 
+    cursor.close()
+    conn.close()
+
     return {
         "expenses": data
     }
-
-
