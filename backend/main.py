@@ -8,7 +8,6 @@ load_dotenv()
 
 app = FastAPI()
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,7 +28,6 @@ def get_connection():
     )
 
     return conn
-
 
 
 conn = get_connection()
@@ -53,14 +51,12 @@ cursor.close()
 conn.close()
 
 
-
 @app.get("/")
 def home():
 
     return {
         "message": "API Running Successfully"
     }
-
 
 
 @app.post("/add_expense")
