@@ -137,4 +137,5 @@ if menu=="📈Analyse_expenses":
         st.line_chart( data=pd_df,y="amount")
     else:
         st.success(response.text)
+        
     
